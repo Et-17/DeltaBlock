@@ -1,3 +1,7 @@
+mod arg_parsing;
+
+use clap::Parser;
+
 fn main() {
-    println!("Hello, world!");
+    println!("{:#?}", arg_parsing::Cli::parse());
 }
