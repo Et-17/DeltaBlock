@@ -1,0 +1,66 @@
+= DeltaBlock Video Storage Format
+Leland Kilborn <leland.kilborn@hotmail.com>
+:description: A small, simple, and efficient storage format for monochrome videos
+:sectnums:
+
+== Theory
+
+The primary concept of DeltaBlock is that it only stores the difference between
+the frames. It divides the video into frames, then into 8 pixel sections.
+Because of this 8 pixel division, the width of the video has to be divisable by
+8, but it'll probably be unless you're weird. It only stores the octets that are
+different from the last frame. It is also specifically designed to be easily 
+processable when reading 512 bytes at a time, for example, if you're using the 
+DeltaBlock standard from x86 real mode.
+
+== Format
+
+=== The metadata header
+
+The files start with a metadata header. It is organized as follows:
+
+[cols="1,1,1"]
+|===
+|Offset |Size |Content
+
+|0
+|2
+|The width of the video
+
+|2
+|2
+|The height of the video
+
+|4
+|1
+|The framerate of the video
+
+|5
+|507
+|Zeros padding to 512 bytes
+|===
+Yes, I know that that's 507 wasted bytes but shush. It's supposed to be in a
+separate sector from the rest of the file to help reading and organization. All
+of it is in little endian because that's what almost everything uses.
+
+=== The first frame
+
+The format assumes that the zeroth frame is all zero, so it stores the first
+frame like any other frame: the deltas from a blank screen to the first frame.
+
+=== The data
+
+The data is stored as frame packet after frame packet until the video is done.
+The frames start with a 2-byte little endian number that contains the amount of
+changed octets in the this frame. Do note that even if only one pixel changed
+the whole new octet must be stored. After this 2-byte number, there is zero
+byte, followed by "pixel delta records". These are a 2-byte little endian number
+that stores the number of the octet, and then the new octet. The octets are
+counted starting from 0, left-to-right, and top-to-bottom. After the last record
+zero bytes are added to pad the frame packet to a multiple of 512 bytes.
+
+=== Extension
+
+I have chosen the file extension `.dblk` because it doesn't seem to be used by
+anything else. If you find something that is already using this extension,
+please open an issue in the Github repository.
